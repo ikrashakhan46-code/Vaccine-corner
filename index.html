@@ -1,0 +1,210 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Vaccine Corner</title>
+<style>
+*{box-sizing:border-box}
+body{margin:0;font-family:Arial;background:#f1f5f9;color:#172b4d}
+header{background:#087f75;color:white;padding:20px}
+header h2{margin:0}
+nav{display:flex;flex-wrap:wrap;background:#064e49}
+nav button{background:none;color:white;border:0;padding:13px;cursor:pointer}
+nav button:hover{background:#087f75}
+main{padding:16px;max-width:1100px;margin:auto}
+section{display:none}
+section.active{display:block}
+.card{background:white;padding:16px;margin:12px 0;border-radius:10px;box-shadow:0 2px 7px #0001}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px}
+.stat{background:white;padding:18px;border-radius:10px}
+.stat strong{display:block;font-size:24px;color:#087f75;margin-top:8px}
+input,select{padding:11px;border:1px solid #cbd5e1;border-radius:6px;width:100%;margin:5px 0 12px}
+label{font-size:13px;font-weight:bold}
+button.action{background:#087f75;color:white;border:0;padding:11px 16px;border-radius:6px;cursor:pointer}
+table{width:100%;border-collapse:collapse;background:white;min-width:550px}
+th,td{padding:10px;border-bottom:1px solid #e2e8f0;text-align:left;font-size:13px}
+th{background:#e6f4f1}
+.tablewrap{overflow-x:auto}
+small{color:#64748b}
+</style>
+</head>
+<body>
+<header>
+<h2>VACCINE CORNER</h2>
+<p>Medical Store Management System</p>
+</header>
+<nav>
+<button onclick="show('dashboard')">Dashboard</button>
+<button onclick="show('stock')">Stock</button>
+<button onclick="show('purchase')">Purchase</button>
+<button onclick="show('sales')">Sales</button>
+<button onclick="show('ledger')">Ledger</button>
+<button onclick="show('reports')">Profit Reports</button>
+</nav>
+<main>
+
+<section id="dashboard" class="active">
+<h2>Dashboard</h2>
+<div class="stats">
+<div class="stat">Total Products<strong id="products">0</strong></div>
+<div class="stat">Stock Units<strong id="units">0</strong></div>
+<div class="stat">Today's Sales<strong id="todaySales">0</strong></div>
+<div class="stat">Today's Profit<strong id="todayProfit">0</strong></div>
+</div>
+<div class="card">
+<h3>Alerts</h3>
+<div id="alerts">No alerts</div>
+</div>
+</section>
+
+<section id="stock">
+<h2>Medicine Stock</h2>
+<div class="card">
+<h3>Add Medicine</h3>
+<label>Medicine Name</label><input id="pname" placeholder="Medicine name">
+<label>Batch Number</label><input id="batch" placeholder="Batch number">
+<label>Expiry Date</label><input id="expiry" type="date">
+<label>Purchase Price</label><input id="cost" type="number" min="0" placeholder="Cost">
+<label>Sale Price</label><input id="price" type="number" min="0" placeholder="Sale price">
+<label>Quantity</label><input id="qty" type="number" min="0" placeholder="Quantity">
+<label>Minimum Stock Alert</label><input id="minimum" type="number" min="0" value="5">
+<button class="action" onclick="addProduct()">Save Medicine</button>
+</div>
+<div class="card">
+<h3>Stock List</h3>
+<div class="tablewrap"><table>
+<thead><tr><th>Name</th><th>Batch</th><th>Expiry</th><th>Qty</th><th>Cost</th><th>Price</th></tr></thead>
+<tbody id="stockList"></tbody>
+</table></div>
+</div>
+</section>
+
+<section id="purchase">
+<h2>Purchase Entry</h2>
+<div class="card">
+<label>Medicine</label><select id="buyProduct"></select>
+<label>Supplier Name</label><input id="supplier" placeholder="Supplier name">
+<label>Quantity Purchased</label><input id="buyQty" type="number" min="1">
+<label>Purchase Cost Per Unit</label><input id="buyCost" type="number" min="0">
+<button class="action" onclick="purchase()">Save Purchase</button>
+</div>
+</section>
+
+<section id="sales">
+<h2>Sales & Billing</h2>
+<div class="card">
+<label>Medicine</label><select id="sellProduct"></select>
+<label>Customer Name (optional)</label><input id="customer" placeholder="Customer name">
+<label>Quantity Sold</label><input id="sellQty" type="number" min="1">
+<label>Sale Price Per Unit</label><input id="sellPrice" type="number" min="0">
+<button class="action" onclick="sell()">Create Sale Bill</button>
+</div>
+<div class="card" id="lastBill">No bills yet.</div>
+</section>
+
+<section id="ledger">
+<h2>Customer & Supplier Ledger</h2>
+<div class="card">
+<h3>Transactions</h3>
+<div class="tablewrap"><table>
+<thead><tr><th>Date</th><th>Type</th><th>Name</th><th>Amount</th></tr></thead>
+<tbody id="ledgerList"></tbody>
+</table></div>
+</div>
+</section>
+
+<section id="reports">
+<h2>Profit Reports</h2>
+<div class="stats">
+<div class="stat">Total Sales<strong id="allSales">0</strong></div>
+<div class="stat">Total Profit<strong id="allProfit">0</strong></div>
+</div>
+<div class="card">
+<h3>Bill-wise Profit</h3>
+<div class="tablewrap"><table>
+<thead><tr><th>Bill</th><th>Date & Time</th><th>Customer</th><th>Sale</th><th>Profit</th></tr></thead>
+<tbody id="billList"></tbody>
+</table></div>
+</div>
+<div class="card">
+<h3>Hourly Sales & Profit</h3>
+<div id="hourly"></div>
+</div>
+</section>
+</main>
+<script>
+const get=(k)=>JSON.parse(localStorage.getItem(k)||"[]");
+const save=(k,v)=>localStorage.setItem(k,JSON.stringify(v));
+let products=get("vc_products"), purchases=get("vc_purchases"),
+sales=get("vc_sales");
+
+function show(id){
+document.querySelectorAll("main section").forEach(s=>s.classList.remove("active"));
+document.getElementById(id).classList.add("active");
+render();
+}
+function money(n){return Number(n||0).toFixed(2)}
+function addProduct(){
+let name=pname.value.trim(),q=Number(qty.value),c=Number(cost.value),p=Number(price.value);
+if(!name||!expiry.value||q<0||c<0||p<0||qty.value===""){alert("Enter valid medicine details");return}
+products.push({name,batch:batch.value,expiry:expiry.value,cost:c,price:p,qty:q,min:Number(minimum.value)||0});
+save("vc_products",products);
+["pname","batch","expiry","cost","price","qty"].forEach(id=>document.getElementById(id).value="");
+render();alert("Medicine saved");
+}
+function purchase(){
+let i=Number(buyProduct.value),q=Number(buyQty.value),c=Number(buyCost.value);
+if(!products[i]||q<1||c<0||buyQty.value===""){alert("Enter valid purchase details");return}
+products[i].qty+=q;products[i].cost=c;
+purchases.push({date:new Date().toISOString(),name:supplier.value||"Supplier",product:products[i].name,amount:q*c});
+save("vc_products",products);save("vc_purchases",purchases);
+buyQty.value="";buyCost.value="";supplier.value="";
+render();alert("Purchase saved");
+}
+function sell(){
+let i=Number(sellProduct.value),q=Number(sellQty.value),p=Number(sellPrice.value);
+if(!products[i]||q<1||p<0||sellQty.value===""||q>products[i].qty){alert("Check quantity and price. Stock may be insufficient.");return}
+let product=products[i],amount=q*p,profit=q*(p-product.cost);
+product.qty-=q;
+let bill="VC-"+Date.now();
+sales.push({bill,date:new Date().toISOString(),customer:customer.value||"Walk-in",product:product.name,qty:q,amount,profit});
+save("vc_products",products);save("vc_sales",sales);
+lastBill.innerHTML="<h3>Bill: "+bill+"</h3>Medicine: "+product.name+"<br>Quantity: "+q+"<br>Total: "+money(amount)+"<br>Profit: "+money(profit);
+sellQty.value="";customer.value="";
+render();alert("Sale saved");
+}
+function render(){
+products=get("vc_products");purchases=get("vc_purchases");sales=get("vc_sales");
+productsElement();
+let today=new Date().toDateString(),ts=sales.filter(s=>new Date(s.date).toDateString()===today);
+document.getElementById("products").textContent=products.length;
+document.getElementById("units").textContent=products.reduce((a,p)=>a+p.qty,0);
+document.getElementById("todaySales").textContent=money(ts.reduce((a,s)=>a+s.amount,0));
+document.getElementById("todayProfit").textContent=money(ts.reduce((a,s)=>a+s.profit,0));
+document.getElementById("allSales").textContent=money(sales.reduce((a,s)=>a+s.amount,0));
+document.getElementById("allProfit").textContent=money(sales.reduce((a,s)=>a+s.profit,0));
+document.getElementById("stockList").innerHTML=products.map(p=>`<tr><td>${esc(p.name)}</td><td>${esc(p.batch)}</td><td>${p.expiry}</td><td>${p.qty}</td><td>${money(p.cost)}</td><td>${money(p.price)}</td></tr>`).join("");
+let alerts=products.filter(p=>p.qty<=p.min||new Date(p.expiry)<new Date());
+document.getElementById("alerts").innerHTML=alerts.length?alerts.map(p=>esc(p.name)+" — "+(p.qty<=p.min?"Low stock ":"")+" "+(new Date(p.expiry)<new Date()?"Expired":"")).join("<br>"):"No alerts";
+document.getElementById("ledgerList").innerHTML=[
+...purchases.map(x=>({date:x.date,type:"Purchase",name:x.name,amount:x.amount})),
+...sales.map(x=>({date:x.date,type:"Sale",name:x.customer,amount:x.amount}))
+].sort((a,b)=>b.date.localeCompare(a.date)).map(x=>`<tr><td>${new Date(x.date).toLocaleString()}</td><td>${x.type}</td><td>${esc(x.name)}</td><td>${money(x.amount)}</td></tr>`).join("");
+document.getElementById("billList").innerHTML=sales.map(s=>`<tr><td>${s.bill}</td><td>${new Date(s.date).toLocaleString()}</td><td>${esc(s.customer)}</td><td>${money(s.amount)}</td><td>${money(s.profit)}</td></tr>`).join("");
+let hours={};sales.forEach(s=>{let h=new Date(s.date).getHours();hours[h]??={sale:0,profit:0};hours[h].sale+=s.amount;hours[h].profit+=s.profit});
+document.getElementById("hourly").innerHTML=Object.keys(hours).sort((a,b)=>a-b).map(h=>`${h}:00 — Sales ${money(hours[h].sale)} — Profit ${money(hours[h].profit)}`).join("<br>")||"No sales yet.";
+}
+function productsElement(){
+["buyProduct","sellProduct"].forEach(id=>{
+let el=document.getElementById(id),old=el.value;
+el.innerHTML=products.map((p,i)=>`<option value="${i}">${esc(p.name)} (Stock: ${p.qty})</option>`).join("");
+if(old!=="")el.value=old;
+});
+}
+function esc(s){return String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]))}
+render();
+</script>
+</body>
+  </html>
